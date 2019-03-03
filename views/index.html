@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="text-align: center">
+    <h1>Che bolu2 fijate que te mande algo al srv</h1>
+    <br><br><br>
+    <input id="input" type="text">
+    <label for="input"><button onclick="send(event)">Send</button></label>
+    <script src="/socket.io/socket.io.js"></script>        	
+
+    <script>
+        const $input = document.querySelector('#input')
+        const socket = io.connect(window.location.href);
+        socket.on('connect', function(data) {
+            socket.emit('join', 'Hello World from client');
+        });
+
+        function send(e){
+            socket.emit('join', $input.value)
+        }
+    </script>
+</body>
+</html>
