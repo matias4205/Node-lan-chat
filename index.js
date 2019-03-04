@@ -10,6 +10,6 @@ app.get('/', function(req, res, next) {
     res.sendFile(__dirname + '/views/index.html');
 });
 
-server.listen(4200, () => {
+server.listen(3000, () => {
     console.log('Server listening at http://localhost:' + server.address().port);
 });

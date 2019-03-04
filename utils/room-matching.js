@@ -1,46 +1,44 @@
 module.exports = () => {
     const online = {}, onWait = [], onChat={};
 
-    setInterval(printStatus, 5000);
+    setInterval(printStatus, 2000);
 
     function printStatus(){
-        console.clear();
         console.log(`${Object.keys(online).length} Online - ${onWait.length} Waiting for a chat - ${Object.keys(onChat).length} Chatting`);
     }
 
     function createChat(user1ID, user2ID){
-        const roomID = user1ID.id + user2ID.id;
+        
+        const roomID = user1ID + user2ID;
         
         online[user1ID].roomID = roomID;
         online[user2ID].roomID = roomID;
 
+        console.log(`Chat room created for ${online[user1ID].user} and ${online[user2ID].user}`);
         
-        if(!onChat[roomID]){
-            console.log(`Chat room created for ${online[user1ID].user} and ${online[user1ID].user}`);
-            
-            onChat[roomID] = {
-                roomID,
-                participants: [ online[user1ID], online[user2ID]],
-                messages: 0
-            }
-            
-            online[user1ID].socket.emit('new-chat', {
-                roomID,
-                participants: [online[user1ID], online[user2ID]],
-                messages: 0,
-                me: 0,
-                he: 1
-            });
-            online[user2ID].socket.emit('new-chat', {
-                roomID,
-                participants: [online[user1ID], online[user2ID]],
-                messages: 0,
-                me: 1,
-                he: 0
-            });
-        }
+        if(!onChat[roomID]) onChat[roomID] = {
+            roomID,
+            participants: [ online[user1ID].user, online[user2ID].user],
+            messages: 0
+        }            
+        
+        
+        online[user1ID].socket.emit('new-chat', {
+            roomID,
+            participants: [online[user1ID].user, online[user2ID].user],
+            messages: 0,
+            me: 0,
+            he: 1
+        });
+       
 
-        
+        online[user2ID].socket.emit('new-chat', {
+            roomID,
+            participants: [online[user1ID].user, online[user2ID].user],
+            messages: 0,
+            me: 1,
+            he: 0
+        });
     }
 
     function searchForUserId(user_name){
@@ -49,15 +47,15 @@ module.exports = () => {
     }
 
     return {
-        userConnect: ({ socket, user }) => {
+        userConnect: ( socket, user ) => {
             if(!online[socket.id]){
                 online[socket.id] = { user, socket };
                 onWait.push({ socket_id: socket.id, user});
             }
+            console.log(online);
         },
         
         initChat: (user1ID, user2_userName) => {
-            console.log(searchForUserId(user2_userName));
             createChat(user1ID, searchForUserId(user2_userName));
         },
 
