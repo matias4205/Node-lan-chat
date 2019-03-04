@@ -6,6 +6,10 @@ module.exports = (socket) => {
 			console.info(`User registered: {name: ${user}, id: ${user_socket.id}}`)
             room_matching.userConnect( user_socket, user );
         });
+        user_socket.on('disconnect', ()=>{
+			console.info(`User with ID: ${user_socket.id} has disconnected.`);
+			room_matching.userDisconnect(user_socket.id);
+		});
         user_socket.on('chat-request', (username) => {
             room_matching.initChat(user_socket.id, username);
         });

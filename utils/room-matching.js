@@ -1,10 +1,10 @@
 module.exports = () => {
-    const online = {}, onWait = [], onChat={};
+    var online = {}, onWait = [], onChat={};
 
     setInterval(printStatus, 2000);
 
     function printStatus(){
-        console.log(`${Object.keys(online).length} Online - ${onWait.length} Waiting for a chat - ${Object.keys(onChat).length} Chatting`);
+        console.log(`${Object.keys(online).length} Online - ${onWait.length} Waiting for a chat - ${(Object.keys(onChat).length)*2} Chatting`);
     }
 
     function createChat(user1ID, user2ID){
@@ -18,7 +18,7 @@ module.exports = () => {
         
         if(!onChat[roomID]) onChat[roomID] = {
             roomID,
-            participants: [ online[user1ID].user, online[user2ID].user],
+            participants: [ { user: online[user1ID].user, socket_id: online[user1ID].socket.id } , { user: online[user2ID].user, socket_id: online[user2ID].socket.id }],
             messages: 0
         }            
         
@@ -52,11 +52,13 @@ module.exports = () => {
                 online[socket.id] = { user, socket };
                 onWait.push({ socket_id: socket.id, user});
             }
-            console.log(online);
         },
         
         initChat: (user1ID, user2_userName) => {
-            createChat(user1ID, searchForUserId(user2_userName));
+            const user2ID = searchForUserId(user2_userName);
+            onWait = onWait.filter(el => el.socket_id !== user1ID );
+            onWait = onWait.filter(el => el.socket_id !== user2ID );
+            createChat(user1ID, user2ID);
         },
 
         sendRoomInfo: (socket) => {
@@ -68,7 +70,28 @@ module.exports = () => {
         },
         
         sendMsg: (id, msg_data) => {
-            online[id].socket.to( searchForUserId( msg_data.destination ) ).emit('message', { from: online[id].user, text: msg_data.text});
-        }
+            online[id].socket.to( onChat[msg_data.roomID].participants[msg_data.he].socket_id ).emit('message', { from: online[id].user, text: msg_data.text});
+        },
+
+        userDisconnect: (id) => {
+			// Close ongoing game related to player if any
+			console.log("On disconnect", id);
+			if (online[id].roomID && onChat[online[id].roomID]) {
+				const roomID = online[id].roomID;
+				// Put all players back on onWait
+				onChat[roomID].participants.map(participants => onWait.push(participants));
+                // Delete match room
+				delete onChat[online[id].roomID];
+				// If the object gets deleted, reset it
+				if (!onChat) onChat = {};
+			}
+            // Delete all instances of disconnecting player from waiting list (if any)
+			onWait = onWait.filter(el => el.socket_id !== id);
+			// Delete from players list
+			if (online[id]) {
+				delete online[id];
+				if (!online) online = {};
+			}
+		}
     }
 }
