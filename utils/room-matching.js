@@ -1,6 +1,6 @@
 module.exports = () => {
     var online = {}, onWait = [], onChat={};
-
+    
     setInterval(printStatus, 2000);
 
     function printStatus(){
@@ -64,9 +64,15 @@ module.exports = () => {
         sendRoomInfo: (socket) => {
             socket.emit('room-info', {
                 online: Object.keys(online).length,
-                waiting: onWait.length,
-                chatting: Object.keys(onChat).length
-            });
+                waiting: (() => {
+                    var waiting = [];
+                    for(user of onWait){
+                      waiting.push(user.user)
+                    }
+                    return waiting;
+                })(),
+                chatting: Object.keys(onChat).length * 2
+            })
         },
         
         sendMsg: (id, msg_data) => {
@@ -75,23 +81,28 @@ module.exports = () => {
 
         userDisconnect: (id) => {
 			// Close ongoing game related to player if any
-			console.log("On disconnect", id);
-			if (online[id].roomID && onChat[online[id].roomID]) {
-				const roomID = online[id].roomID;
-				// Put all players back on onWait
-				onChat[roomID].participants.map(participants => onWait.push(participants));
-                // Delete match room
-				delete onChat[online[id].roomID];
-				// If the object gets deleted, reset it
-				if (!onChat) onChat = {};
-			}
-            // Delete all instances of disconnecting player from waiting list (if any)
-			onWait = onWait.filter(el => el.socket_id !== id);
-			// Delete from players list
-			if (online[id]) {
-				delete online[id];
-				if (!online) online = {};
-			}
+            console.log("On disconnect", id);
+            
+            try{            
+                if (online[id].roomID && onChat[online[id].roomID]) {
+                    const roomID = online[id].roomID;
+                    // Put all players back on onWait
+                    onChat[roomID].participants.map(participants => onWait.push(participants));
+                    // Delete match room
+                    delete onChat[online[id].roomID];
+                    // If the object gets deleted, reset it
+                    if (!onChat) onChat = {};
+                }
+                // Delete all instances of disconnecting player from waiting list (if any)
+                onWait = onWait.filter(el => el.socket_id !== id);
+                // Delete from players list
+                if (online[id]) {
+                    delete online[id];
+                    if (!online) online = {};
+                }
+            }catch (err){
+                console.error('The user who disconected wasn\'t registered!');
+            }
 		}
     }
 }
